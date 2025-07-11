@@ -9,7 +9,9 @@
 
 <body>
     <div>
-        <input type="checkbox" />
+        <input type="text" class="newText" />
+        <button onclick="add()">新增</button>
+        <button onclick="reset()">重置</button>
         <table border>
             <thead>
                 <tr>
@@ -26,8 +28,48 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.9/locale/zh-cn.js"></script>
     <script>
-        dayjs.locale('zh-cn')
         const table = document.querySelector('.body')
+        function reset(){
+            document.querySelector('.newText').value=""
+        }
+        function add() {
+            const newText = document.querySelector('.newText').value;
+            const formData = {
+                value: 0,
+                text: newText,
+            }
+            fetch('http://localhost:3000/api/record/create', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(formData)
+            }).then(res => {
+                if (!res) {
+                    return
+                }
+                return res.json()
+            }).then(res => {
+                const item = res[0]
+                console.log(item)
+                if (item.value === 0) {
+                    item.value = "未完成"
+                } else {
+                    item.value = "已完成"
+                }
+                item.create_time = formated(item.create_time)
+                const parent = document.querySelector('.body')
+                let tr = document.createElement('tr')
+                trContent =
+                    `<input type='checkbox' onclick='updateData(this)' id="${item.id}" class="test"/>
+                    <td><input value=${item.text}></td>
+                    <td>${item.value}</td>
+                    <td>${item.create_time}</td>
+                    <button onclick="updateData(this)">提交</button>`
+                parent.appendChild(tr).innerHTML = trContent
+            })
+        }
+        dayjs.locale('zh-cn')
         function getData() {
             fetch('http://localhost:3000/api/record').then(res => {
                 if (!res.ok) {
@@ -37,12 +79,10 @@
             }).then(res => {
                 console.log(res)
                 displayData(res)
-                document.querySelectorAll('.test').forEach(item=>{
-                    const status=localStorage.getItem(item.id)
-                    const value=status==='true'
-                    console.log(value)
-                    item.checked=value
-
+                document.querySelectorAll('.test').forEach(item => {
+                    const status = localStorage.getItem(item.id)
+                    const value = status === 'true'
+                    item.checked = value
                 })
             })
         }
