@@ -29,8 +29,8 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.9/locale/zh-cn.js"></script>
     <script>
         const table = document.querySelector('.body')
-        function reset(){
-            document.querySelector('.newText').value=""
+        function reset() {
+            document.querySelector('.newText').value = ""
         }
         function add() {
             const newText = document.querySelector('.newText').value;
@@ -65,11 +65,29 @@
                     <td><input value=${item.text}></td>
                     <td>${item.value}</td>
                     <td>${item.create_time}</td>
-                    <button onclick="updateData(this)">提交</button>`
-                parent.appendChild(tr).innerHTML = trContent
+                    <button onclick="updateData(this)">提交</button>
+                    <button onclick="deleteData(this)">删除</button>`
+                parent.appendChild(tr)
+                tr.innerHTML = trContent
+                window.location.reload()
             })
         }
         dayjs.locale('zh-cn')
+        function deleteData(item) {
+            const tr = item.closest('tr')
+            fetch(`http://localhost:3000/api/record/${tr.id}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(res => {
+                if (res.status == 204) {
+                    console.log("删除成功")
+                    table.removeChild(tr)
+                    window.location.reload()
+                }
+            })
+        }
         function getData() {
             fetch('http://localhost:3000/api/record').then(res => {
                 if (!res.ok) {
@@ -104,8 +122,10 @@
                     <td>${data[i].value}</td>
                     <td>${data[i].create_time}</td>
                     <button onclick="updateData(this)">提交</button>
+                    <button onclick="deleteData(this)">删除</button>
                 `
-                table.appendChild(tr).innerHTML = trContent
+                table.appendChild(tr)
+                tr.innerHTML = trContent
             }
         }
         function formated(timer) {
