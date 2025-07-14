@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div>
+        <input type="text" class="newText" />
+        <button onclick="add()">新增</button>
+        <button onclick="reset()">重置</button>
+        <table border>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>日程</th>
+                    <th>完成</th>
+                    <th>创建时间</th>
+                </tr>
+            </thead>
+            <tbody class="body">
+            </tbody>
+        </table>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.9/locale/zh-cn.js"></script>
+    <script>
+        const table = document.querySelector('.body')
+        function reset() {
+            document.querySelector('.newText').value = ""
+        }
+        function add() {
+            const newText = document.querySelector('.newText').value;
+            const formData = {
+                value: 0,
+                text: newText,
+            }
+            fetch('http://localhost:3000/api/record/create', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(formData)
+            }).then(res => {
+                if (!res) {
+                    return
+                }
+                return res.json()
+            }).then(res => {
+                const item = res[0]
+                console.log(item)
+                if (item.value === 0) {
+                    item.value = "未完成"
+                } else {
+                    item.value = "已完成"
+                }
+                item.create_time = formated(item.create_time)
+                const parent = document.querySelector('.body')
+                let tr = document.createElement('tr')
+                trContent =
+                    `<input type='checkbox' onclick='updateData(this)' id="${item.id}" class="test"/>
+                    <td><input value=${item.text}></td>
+                    <td>${item.value}</td>
+                    <td>${item.create_time}</td>
+                    <button onclick="updateData(this)">提交</button>
+                    <button onclick="deleteData(this)">删除</button>`
+                parent.appendChild(tr)
+                tr.innerHTML = trContent
+                window.location.reload()
+            })
+        }
+        dayjs.locale('zh-cn')
+        function deleteData(item) {
+            const tr = item.closest('tr')
+            fetch(`http://localhost:3000/api/record/${tr.id}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(res => {
+                if (res.status == 204) {
+                    console.log("删除成功")
+                    table.removeChild(tr)
+                    window.location.reload()
+                }
+            })
+        }
+        function getData() {
+            fetch('http://localhost:3000/api/record').then(res => {
+                if (!res.ok) {
+                    return new Error(`HTTP响应错误`)
+                }
+                return res.json()
+            }).then(res => {
+                console.log(res)
+                displayData(res)
+                document.querySelectorAll('.test').forEach(item => {
+                    const status = localStorage.getItem(item.id)
+                    const value = status === 'true'
+                    item.checked = value
+                })
+            })
+        }
+        let value = false
+        getData()
+        function displayData(data) {
+            for (let i = 0; i < data.length; i++) {
+                let tr = document.createElement('tr')
+                tr.id = data[i].id
+                if (data[i].value === 0) {
+                    data[i].value = "未完成"
+                } else {
+                    data[i].value = "已完成"
+                }
+                data[i].create_time = formated(data[i].create_time)
+                trContent = `
+                    <input type='checkbox' onclick='updateData(this)' id="${tr.id}" class="test"/>
+                    <td><input value=${data[i].text}></td>
+                    <td>${data[i].value}</td>
+                    <td>${data[i].create_time}</td>
+                    <button onclick="updateData(this)">提交</button>
+                    <button onclick="deleteData(this)">删除</button>
+                `
+                table.appendChild(tr)
+                tr.innerHTML = trContent
+            }
+        }
+        function formated(timer) {
+            return dayjs(timer).format('YYYY-MM-DD')
+        }
+        function updateData(item) {
+            const row = item.closest('tr')
+            const status = row.querySelector('input').checked;
+            localStorage.setItem(`${row.id}`, Boolean(status))
+            const text = row.getElementsByTagName('td')[0].querySelector('input').value
+            const formatData = {
+                text: text,
+                value: item.checked || row.querySelector('input').checked
+            }
+            fetch(`http://localhost:3000/api/record/${row.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formatData)
+            }).then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP状态码为${res.status}`)
+                }
+                return res.json()
+            }).then(res => {
+                console.log(res)
+            })
+
+            // row.getElementsByTagName('td')[0].querySelector('input').value=text
+            // row.querySelector('input').checked=formatData.value;
+        }
+    </script>
+</body>
+
+</html>
